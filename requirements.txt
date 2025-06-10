@@ -1,0 +1,11 @@
+# requirements.txt
+streamlit
+networkx
+matplotlib
+pandas
+numpy
+python-louvain
+scipy
+tqdm
+
+
