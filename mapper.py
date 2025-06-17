@@ -20,48 +20,24 @@ def log_error(message):
     print(f"ERROR: {message}", file=sys.stderr)
 
 def parse_line(line: str) -> Tuple[str, float, List[str]]:
-    """
-    Parse une ligne d'entrée et extrait le nœud, son rang et ses liens
-    
-    Formats supportés:
-    - "node rank link1,link2,link3" (itérations suivantes)
-    - "node link1 link2 link3" (première itération)
-    - "node" (nœud sans liens)
-    """
     tokens = line.strip().split()
-    
     if not tokens:
         raise ValueError("Ligne vide")
     
     node = tokens[0]
     
+    # Cas spécial pour le nœud E sans liens
     if len(tokens) == 1:
-        # Nœud isolé
         return node, 1.0, []
     
-    elif len(tokens) >= 2:
-        try:
-            # Essayer de parser le deuxième token comme rang
-            rank = float(tokens[1])
-            
-            # Les liens sont dans le troisième token (séparés par des virgules)
-            if len(tokens) > 2:
-                links = tokens[2].split(',') if tokens[2] else []
-                # Nettoyer les liens vides
-                links = [link.strip() for link in links if link.strip()]
-            else:
-                links = []
-                
-            return node, rank, links
-            
-        except ValueError:
-            # Le deuxième token n'est pas un nombre, donc c'est la première itération
-            # Tous les tokens après le premier sont des liens
-            rank = 1.0
-            links = [link.strip() for link in tokens[1:] if link.strip()]
-            return node, rank, links
-    
-    return node, 1.0, []
+    try:
+        # Essayer de lire un format avec rank
+        rank = float(tokens[1])
+        links = tokens[2].split(',') if len(tokens) > 2 else []
+        return node, rank, [link for link in links if link]
+    except ValueError:
+        # Format initial sans rank
+        return node, 1.0, [link for link in tokens[1:] if link]
 
 def emit_contributions(node: str, rank: float, outlinks: List[str]) -> None:
     """Émet les contributions optimisées pour le traitement parallèle"""
