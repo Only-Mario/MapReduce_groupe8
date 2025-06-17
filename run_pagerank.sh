@@ -1,30 +1,42 @@
 #!/bin/bash
 INPUT="input.txt"
-MAX_ITER=30
+MAX_ITER=25
 THRESHOLD=0.001
 DAMPING=0.85
 
 cp "$INPUT" iteration0.txt
-echo "Dï¿½marrage du calcul PageRank..."
+echo "Démarrage du calcul PageRank..."
 
 for i in $(seq 1 $MAX_ITER)
 do
-    echo "Itï¿½ration $i/$MAX_ITER"
+    echo "Itération $i/$MAX_ITER"
     cat iteration$((i-1)).txt | python mapper.py | sort | python reducer.py $DAMPING > iteration$i.txt
     
-    # Vï¿½rification de convergence (simplifiï¿½e)
+    # Vérification de convergence (simplifiée)
     if [ $i -gt 1 ]; then
-    DIFF=$(python -c "
-prev = open(f'iteration{i-1}.txt').read().split()
-curr = open(f'iteration{i}.txt').read().split()
-diff = sum(abs(float(prev[i+1])-float(curr[i+1])) for i in range(0,len(prev),3))
-print(diff)
+        DIFF=$(python -c "
+import sys
+try:
+    with open('iteration$((i-1)).txt') as f1, open('iteration$i.txt') as f2:
+        lines1 = f1.readlines()
+        lines2 = f2.readlines()
+        total_diff = 0
+        for l1, l2 in zip(lines1, lines2):
+            try:
+                rank1 = float(l1.split()[1])
+                rank2 = float(l2.split()[1])
+                total_diff += abs(rank1 - rank2)
+            except:
+                pass
+        print(total_diff)
+except:
+    print(1.0)
 ")
-    if python -c "exit(0 if $DIFF < $THRESHOLD else 1)"; then
-        echo "Convergence atteinte Ã  l'itÃ©ration $i"
-        break
+        if (( $(echo "$DIFF < $THRESHOLD" | bc -l) )); then
+            echo "Convergence atteinte à l'itération $i"
+            break
+        fi
     fi
-fi
 done
 
-echo "Calcul terminï¿½."
+echo "Calcul terminé."

@@ -132,11 +132,11 @@ echo "Démarrage du calcul PageRank..."
 for i in $(seq 1 $MAX_ITER)
 do
     echo "Itération $i/$MAX_ITER"
-    cat iteration$((i-1)).txt | python3 mapper.py | sort | python3 reducer.py $DAMPING > iteration$i.txt
+    cat iteration$((i-1)).txt | python mapper.py | sort | python reducer.py $DAMPING > iteration$i.txt
     
     # Vérification de convergence (simplifiée)
     if [ $i -gt 1 ]; then
-        DIFF=$(python3 -c "
+        DIFF=$(python -c "
 import sys
 try:
     with open('iteration$((i-1)).txt') as f1, open('iteration$i.txt') as f2:
