@@ -8,7 +8,16 @@ import logging
 from typing import List, Tuple, Optional
 
 # Configuration du logging
-logging.basicConfig(level=logging.ERROR, format='%(levelname)s: %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    filename='mapper.log',
+    filemode='w'
+)
+
+def log_error(message):
+    logging.error(message)
+    print(f"ERROR: {message}", file=sys.stderr)
 
 def parse_line(line: str) -> Tuple[str, float, List[str]]:
     """
@@ -55,22 +64,18 @@ def parse_line(line: str) -> Tuple[str, float, List[str]]:
     return node, 1.0, []
 
 def emit_contributions(node: str, rank: float, outlinks: List[str]) -> None:
-    """
-    Émet les contributions PageRank pour les liens sortants
-    """
-    # Émettre la structure du graphe (préservation des liens)
-    links_str = ','.join(outlinks) if outlinks else ''
-    print(f"{node}\t[{links_str}")
+    """Émet les contributions optimisées pour le traitement parallèle"""
+    # Structure du graphe (peut être traité en parallèle)
+    print(f"{node}\tGRAPH\t{','.join(outlinks) if outlinks else ''}")
     
-    # Émettre les contributions PageRank
+    # Contributions PageRank (traitement parallèle des cibles)
     if outlinks:
         contribution = rank / len(outlinks)
         for target in outlinks:
-            print(f"{target}\t{contribution:.10f}")
+            print(f"{target}\tCONTRIB\t{contribution:.15f}")
     else:
-        # Nœud sans liens sortants - contribution distribuée à tous les nœuds
-        # (sera géré par le reducer avec la "random jump" probability)
-        pass
+        # Marqueur pour nœuds pendants
+        print(f"{node}\tDANGLING\t{rank:.15f}")
 
 def process_input() -> None:
     """

@@ -23,69 +23,42 @@ class PageRankReducer:
         self.total_dangling_rank = 0.0
         
     def process_line(self, line: str) -> None:
-        """
-        Traite une ligne d'entrée du mapper
-        """
+        """Traitement parallélisable des lignes"""
         try:
-            node, value = line.strip().split('\t', 1)
+            node, typ, value = line.strip().split('\t', 2)
             self.all_nodes.add(node)
             
-            if value.startswith('['):
-                # Structure du graphe (liens sortants)
-                self.nodes_data[node]['outlinks'] = value[1:]  # Enlever le '['
-                if not value[1:]:  # Nœud sans liens sortants (dangling node)
-                    # On ajoutera sa contribution au total des nœuds pendants
-                    pass
-            else:
-                # Contribution PageRank
-                try:
-                    contribution = float(value)
-                    self.nodes_data[node]['rank_sum'] += contribution
-                except ValueError:
-                    logging.error(f"Valeur de contribution invalide: {value}")
-                    
-        except ValueError as e:
-            logging.error(f"Format de ligne invalide: {line.strip()[:50]}...")
+            if typ == 'GRAPH':
+                self.nodes_data[node]['outlinks'] = value
+            elif typ == 'CONTRIB':
+                self.nodes_data[node]['rank_sum'] += float(value)
+            elif typ == 'DANGLING':
+                self.nodes_data[node]['rank_sum'] += float(value)
+                self.nodes_data[node]['outlinks'] = ''
+        except ValueError:
+            logging.error(f"Ligne mal formatée: {line[:50]}...")
+
             
     def calculate_final_ranks(self) -> Dict[str, float]:
-        """
-        Calcule les scores PageRank finaux avec gestion des nœuds pendants
-        """
+        """Version optimisée du calcul PageRank"""
         num_nodes = len(self.all_nodes)
         if num_nodes == 0:
             return {}
+
+        # Calcul de la somme totale des rangs des nœuds pendants en une passe
+        total_dangling_rank = sum(
+            data['rank_sum'] for node, data in self.nodes_data.items()
+            if not data['outlinks'] and node in self.all_nodes
+        )
+
+        # Calcul parallélisable des rangs finaux
+        base_rank = (1 - self.damping_factor) / num_nodes
+        dangling_contrib = self.damping_factor * (total_dangling_rank / num_nodes)
         
-        # Identifier les nœuds pendants et calculer leur contribution totale
-        dangling_nodes = []
-        for node in self.all_nodes:
-            outlinks = self.nodes_data[node]['outlinks']
-            if not outlinks:  # Nœud sans liens sortants
-                dangling_nodes.append(node)
-        
-        # Calculer la contribution des nœuds pendants
-        dangling_contribution = 0.0
-        for node in dangling_nodes:
-            # On suppose que les nœuds pendants ont un rang initial, 
-            # on le récupérera lors du calcul final
-            pass
-        
-        final_ranks = {}
-        
-        for node in self.all_nodes:
-            # Somme des contributions reçues
-            rank_sum = self.nodes_data[node]['rank_sum']
-            
-            # Formule PageRank avec gestion des nœuds pendants
-            # PageRank(p) = (1-d)/N + d * (sum(PR(Ti)/C(Ti)) + dangling_sum/N)
-            base_rank = (1 - self.damping_factor) / num_nodes
-            link_contribution = self.damping_factor * rank_sum
-            
-            # Contribution des nœuds pendants (distribuée équitablement)
-            # Cette partie sera améliorée dans une version plus sophistiquée
-            dangling_contrib = 0.0  # Simplifié pour cette version
-            
-            final_rank = base_rank + link_contribution + dangling_contrib
-            final_ranks[node] = final_rank
+        final_ranks = {
+            node: base_rank + self.damping_factor * self.nodes_data[node]['rank_sum'] + dangling_contrib
+            for node in self.all_nodes
+        }
         
         return final_ranks
     

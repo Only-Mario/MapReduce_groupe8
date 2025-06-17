@@ -1,6 +1,6 @@
 #!/bin/bash
 INPUT="input.txt"
-MAX_ITER=20
+MAX_ITER=50
 THRESHOLD=0.001
 DAMPING=0.85
 

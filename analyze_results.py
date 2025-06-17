@@ -162,18 +162,20 @@ class PageRankAnalyzer:
 
     def run(self, damping_factor: float = 0.85, max_iter: int = 100):
         """
-        Exécute l'analyse de PageRank
+        Exécute l'analyse de PageRank (version corrigée)
         """
-        self.load_mapreduce_results()
-        self.compare_results()
-        self.plot_results(self.comparison)
-        self.save_comparison(self.comparison)
-        self.compute_networkx_pagerank(damping_factor, max_iter)
+        # Charger les données dans le bon ordre
         self.load_graph()
-        self.run(damping_factor, max_iter)
+        self.compute_networkx_pagerank(damping_factor, max_iter)
+        self.load_mapreduce_results()
+        
+        # Effectuer la comparaison
         self.comparison = self.compare_results()
-        self.plot_results(self.comparison)
-        self.save_comparison(self.comparison)
+        
+        # Générer les visualisations et sauvegarder
+        if self.comparison:
+            self.plot_results(self.comparison)
+            self.save_comparison(self.comparison)
         
 def main():
     analyzer = PageRankAnalyzer()
